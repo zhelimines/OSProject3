@@ -1,0 +1,241 @@
+#include "builtins.h"
+
+using namespace std;
+
+stack<string> *dirStack = new stack<string>();
+
+int com_ls(vector<string>& tokens) {
+  // set the current dir as default if no dir input
+  if (tokens.size() < 2) {
+    tokens.push_back(".");
+  }
+
+  // open dir
+  DIR* dir = opendir(tokens[1].c_str());
+
+  // catch an errors opening the directory
+  if (!dir) {
+    // print the error from the last system call with the given prefix
+    perror("There are some errors in ls: ");
+
+    // return error
+    return 1;
+  }
+
+  // output each entry in the directory
+  for (dirent* iter = readdir(dir); iter; iter = readdir(dir)) {
+    cout << iter->d_name << endl;
+  }
+
+  // return success
+  return 0;
+}
+
+
+int com_cd(vector<string>& tokens) {
+  //-----------------------------
+    if (IF_DEBUG) {
+		d_printf("For every token it's in cd: ");
+		for (int i=0; i<tokens.size(); i++) {
+			d_printf("%s ", tokens[i].c_str());
+		}
+		d_printf("\n");
+	}
+    if (tokens.size() == 2) {
+        // If the first value is a '/', using an absolute path
+        if (tokens[1][0] == '/') {
+			d_printf("changing path to: %s\n", tokens[1].c_str());
+			d_printf("pushing pwd into the dir stack");
+			dirStack->push(pwd());
+            int retValue = chdir(tokens[1].c_str());
+			d_printf("return value of change dir: %d\n", retValue);
+			if (retValue != NORMAL_EXIT) {
+				perror("cd");
+			}
+            return retValue;
+        }
+		else if (tokens[1][0] == '-') {
+			d_printf("changing to the last dir\n");
+			int retValue = chdir(dirStack->top().c_str());
+			dirStack->pop();
+			if (retValue != NORMAL_EXIT) {
+				perror("cd");
+			}
+			return retValue;
+		}
+        else {
+            string cwDir = getcwd(NULL, 0);
+            // Add a slash
+            cwDir += "/";
+            // Add the new directory(ies)
+            cwDir += tokens[1];
+            // Check the new_cwd exists before going there
+            if (!opendir(cwDir.c_str())) {
+                perror("cd");
+                return BAD_FILE_OR_DIR;
+            }
+            else {
+                chdir(cwDir.c_str());
+                return NORMAL_EXIT;
+            }
+        }
+    }
+	else if (tokens.size() == 1) {
+		d_printf("pushing pwDir into the dir stack\n");
+		dirStack->push(pwd());
+		chdir(getenv("HOME"));
+		return NORMAL_EXIT;
+	}
+    // Too many arguemnts
+    else {
+        perror("invalid argument in cd");
+        return INVALID_ARGUMENTS;
+    }
+
+  //----------------------------- 
+  cout << "cd called" << endl; // delete when implemented
+  return 0;
+}
+
+
+int com_pwd(vector<string>& tokens) {
+  //TODO here
+  printf("%s\n", pwd().c_str());
+  return NORMAL_EXIT;
+  // HINT: you should implement the actual fetching of the current directory in
+  // pwd(), since this information is also used for your prompt
+  cout << "pwd called" << endl; // delete when implemented
+  return 0;
+}
+
+
+int com_alias(vector<string>& tokens) {
+  // TODO: YOUR CODE GOES HERE
+  cout << "alias called" << endl; // delete when implemented
+  return 0;
+}
+
+
+int com_unalias(vector<string>& tokens) {
+  // TODO: YOUR CODE GOES HERE
+  cout << "unalias called" << endl; // delete when implemented
+  return 0;
+}
+
+
+int com_echo(vector<string>& tokens) {
+  // TODO: YOUR CODE GOES HERE
+
+  // If there's nothing to echo, echo nothing
+    if (tokens.size() == 1) {
+	printf("\n");
+	return NORMAL_EXIT;
+    }
+	// Else we hav to echo something
+	else {
+		// Parse all the tokens in the echo statement
+		for (int i = 1; i < tokens.size(); ++i) {
+			string tempToken = tokens[i];
+			if (i == tokens.size() - 1) {
+				printf("%s\n", tokens[i].c_str());
+				return NORMAL_EXIT;
+			}
+			else {
+				printf("%s ", tokens[i].c_str());
+				//TODO: Stop if a pipe is encountered
+			}
+		}
+	}
+	// If echo does not run correctly, return abnormally
+	return ABNORMAL_EXEC;
+
+
+  //--------------------------
+  cout << "echo called" << endl; // delete when implemented
+  return 0;
+}
+
+
+int com_exit(vector<string>& tokens) {
+  //return SIGNAL_EXIT_SHELL;
+exit(0);
+return 0;
+}
+
+
+int com_history(vector<string>& tokens) {
+	d_printf("history commands:\n");
+	if (history_length == 0) {
+		return NORMAL_EXIT;
+	}
+	d_printf("lack of history\n");
+    if (tokens.size() > 2) {
+		perror("history");
+		return TOO_MANY_ARGUMENTS;
+	}
+	else if (tokens.size() == 2) {
+		d_printf("There are too many arguments.\n");
+		if (tokens[1][0] == '-') {
+			cerr << "Negative arguments are not allowed in history\n";
+			return INVALID_ARGUMENTS;
+		}
+
+		// Show amount of history
+		print_last_amount_history(atoi(tokens[1].c_str()));
+	}
+	else if (tokens.size() == 1) {
+		d_printf("too many arguments: only one token\n");
+		print_last_amount_history(history_length);
+	}
+	else {
+		d_printf("Invalid array size.\n");
+		// This should never happen, implies negative size
+		perror("history");
+		return ABNORMAL_EXEC;
+	}
+    return NORMAL_EXIT;
+}
+
+// Precondition: Expects a positive offset, for amount of elements to display
+void print_last_amount_history(int num) {
+	// Cap amount of history to display
+	if (num > history_length) {
+		num = history_length;
+	}
+	HIST_ENTRY *tempHistoryEntry = NULL;
+	d_printf("Temp entry created\n");
+	for (int i = history_length - num; i <= history_length; i++) {
+		tempHistoryEntry = history_get(i);
+		d_printf("\nGot a new history element at: %d\n", i);
+		if (tempHistoryEntry == NULL) {
+			d_printf("Element was null!\n");
+			// Silenced error, this is okay. It's for compatibility for Linux vs BSD
+			// perror("Trying to parse a null history pointer, moving on:");
+			continue;
+		}
+		else {
+			printf("   %d  %s\n", i, tempHistoryEntry->line);
+		}
+	}
+}
+
+string pwd() {
+  // TODO: YOUR CODE GOES HERE
+  return getcwd(NULL, 0);
+  //--------
+  return NULL;
+}
+
+string user() {
+	return getenv("USER");
+}
+
+string last_command_status(int code) {
+	stringstream ss;
+	ss << code;
+	return ss.str();
+}
+
+
+
+
