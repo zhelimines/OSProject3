@@ -414,25 +414,26 @@ int tokenize(const char* line, vector<string>& save_to) {
 
 //This is for exectuting single command 
 int execute_single_command(vector<string>& tokens, map<string, command>& builtins) {
+        //if the size of tokens is not equal to 0
 	if (tokens.size() != 0) {
-	int stdin_fd = dup(STD_IN);
-	int stdout_fd = dup(STD_OUT);
-	int in_fd, out_fd, append_fd;
-	// Prepare file descriptors, if needed
-	if (redirect_flags[REDIRECT_IN] == 1) {
-		in_fd = open(redirect_tokens[1].c_str(), O_RDONLY, 0);
-		dup2(in_fd, STD_IN);
-		close(in_fd);
-	}
-	else if (redirect_flags[REDIRECT_OUT] == 1) {
-		out_fd = open(redirect_tokens[1].c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-		dup2(out_fd, STD_OUT);
-		close(out_fd);
-	}
-	else if (redirect_flags[REDIRECT_APPEND] == 1) {
-		append_fd = open(redirect_tokens[1].c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
-		dup2(append_fd, STD_OUT);
-		close(append_fd);
+		int stdin_fd = dup(STD_IN);
+		int stdout_fd = dup(STD_OUT);
+		int in_fd, out_fd, append_fd;
+		// Prepare file descriptors, if needed
+		if (redirect_flags[REDIRECT_IN] == 1) {
+			in_fd = open(redirect_tokens[1].c_str(), O_RDONLY, 0);
+			dup2(in_fd, STD_IN);
+			close(in_fd);
+		}
+		else if (redirect_flags[REDIRECT_OUT] == 1) {
+			out_fd = open(redirect_tokens[1].c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+			dup2(out_fd, STD_OUT);
+			close(out_fd);
+		}
+		else if (redirect_flags[REDIRECT_APPEND] == 1) {
+			append_fd = open(redirect_tokens[1].c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
+			dup2(append_fd, STD_OUT);
+			close(append_fd);
 	}
 	
         map<string, command>::iterator cmd = builtins.find(tokens[0]);
