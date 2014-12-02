@@ -15,4 +15,6 @@
 #Approximate number of hours we spent on this project:
   60 hrs.
   
+PS: "Src" file is our final submission. For intermediate I&II, we use shell_outline file you can check the submission time so that it can prove that we submited it on time.
+
 ==========
